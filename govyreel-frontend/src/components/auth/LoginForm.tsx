@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { loginAction } from "@/app/login/action"
+import { login } from "@/services/auth-service"
 
 export function LoginForm({
   className,
@@ -23,7 +23,7 @@ export function LoginForm({
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" action={
             async (formData: FormData) => {
-              await loginAction(formData); 
+              await login(formData); 
             }
           }>
             <FieldGroup>

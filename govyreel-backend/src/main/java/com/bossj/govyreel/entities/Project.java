@@ -8,6 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -24,11 +26,10 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = { "roleMappings", "password" })
+@ToString(exclude = { })
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
-@Table(name = "users")
-public class User extends BaseEntity{
-
+@Table(name = "projects")
+public class Project extends BaseEntity {
     @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(generator = "UUID")
@@ -38,15 +39,13 @@ public class User extends BaseEntity{
     @Column(nullable = false)
     private String name;
 
-    @Column(unique = true, nullable = false)
-    private String email;
-
     @Column(nullable = false)
-    private String password;
+    private String description;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
-    private List<RoleToUserMapping> roleMappings;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Project> projectList;
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private List<ProjectAsset> projectAssets;
 }

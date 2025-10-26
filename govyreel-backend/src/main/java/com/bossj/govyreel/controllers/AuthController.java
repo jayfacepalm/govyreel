@@ -1,14 +1,17 @@
 package com.bossj.govyreel.controllers;
 
+import java.net.URI;
 import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,12 +33,15 @@ public class AuthController {
         private final AuthService authService;
         private final Environment environment;
         private final long refreshTokenDurationMs;
+        private final String frontEndUrl;
 
         public AuthController(AuthService authService, Environment environment,
-                        @Value("${app.jwt.refreshTokenExpirationInMs}") long refreshTokenDurationMs) {
+                        @Value("${app.jwt.refreshTokenExpirationInMs}") long refreshTokenDurationMs,
+                        @Value("${app.frontend.url}") String frontEndUrl) {
                 this.authService = authService;
                 this.environment = environment;
                 this.refreshTokenDurationMs = refreshTokenDurationMs;
+                this.frontEndUrl = frontEndUrl;
         }
 
         @PostMapping("/login")
@@ -52,7 +58,7 @@ public class AuthController {
                 return buildTokenResponse(jwtResponse, "Token refreshed successfully");
         }
 
-        @PostMapping("/logout")
+        @GetMapping("/logout")
         public ResponseEntity<ApiResponse<String>> logout(
                         @CookieValue("refreshToken") String refreshToken) {
                 log.info("Logout attempt for refresh token: {}", refreshToken);
@@ -60,8 +66,7 @@ public class AuthController {
                         authService.logoutUser(refreshToken);
                 }
 
-                return buildTokenResponse(
-                                JwtResponse.builder().accessToken("").refreshToken("").build(),
+                return buildLogoutTokenResponse(
                                 "Logout successful");
         }
 
@@ -96,4 +101,38 @@ public class AuthController {
                                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                                 .body(response);
         }
+
+        private ResponseEntity<ApiResponse<String>> buildLogoutTokenResponse(String successMessage) {
+
+                boolean isSecureCookie = !Arrays.asList(environment.getActiveProfiles()).contains("dev");
+
+                ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", "")
+                                .httpOnly(true)
+                                .path("/")
+                                .maxAge(0) // 15 minutes
+                                .secure(isSecureCookie)
+                                .sameSite(isSecureCookie ? "None" : "Lax")
+                                .build();
+
+                ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", "")
+                                .httpOnly(true)
+                                .path("/")
+                                .maxAge(0)
+                                .secure(isSecureCookie)
+                                .sameSite(isSecureCookie ? "None" : "Lax")
+                                .build();
+
+                ApiResponse<String> response = ApiResponse.<String>builder()
+                                .message(successMessage)
+                                .build();
+
+                log.info(successMessage);
+
+                return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+                                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                                .location(URI.create(frontEndUrl))
+                                .body(response);
+        }
+
 }

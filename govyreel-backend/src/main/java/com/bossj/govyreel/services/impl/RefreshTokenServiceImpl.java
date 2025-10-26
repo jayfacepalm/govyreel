@@ -59,4 +59,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         refreshTokenRepository.deleteByToken(token);
     }
 
+    @Override
+    public RefreshToken findByToken(String token) {
+        return refreshTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+    }
+
 }

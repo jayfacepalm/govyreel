@@ -33,33 +33,15 @@ export async function loginAction(
     return;
   }
 
-  redirect("/dashboard");
+  redirect("/workspace");
 }
 
-export async function refreshTokenServerAction(): Promise<void> {
-  try {
-    const response = await fetch(`${backendUrl}/api/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-    });
-    if (!response.ok) {
-      console.error("Refresh token request failed with status:", response.status);
-      toast.error("Refresh token failed. Please log in again.");
-      return;
-    }
-  } catch (error) {
-    console.error("Refresh token failed:", error);
-    return;
-  }
-}
+
 
 export async function logoutAction(): Promise<void> {
   try {
     const response = await fetch(`${backendUrl}/api/auth/logout`, {
-      method: "POST",
+      method: "GET",
       credentials: "include",
     });
     if (!response.ok) {

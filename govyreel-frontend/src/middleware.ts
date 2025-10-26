@@ -1,34 +1,35 @@
 import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
-import { refreshTokenServerAction } from "./app/login/action";
-
-type JWTPayload = {
-  sub: string;
-  iat: number;
-  exp: number;
-  displayName: string;
-  roles: string[];
-};
+import { getJwtSecret } from "./lib/auth";
+import { JWTPayload } from "./types/jwt";
 
 const PROTECTED_PATHS = {
   paths: [
     {
-      path: "/dashboard",
+      path: "/workspace",
       roles: ["ALL"],
     },
+    {
+      path: "/other",
+      roles: ["ALL"],
+    }
   ],
 };
 
 export async function middleware(request: NextRequest) {
   const accessTokenCookie = request.cookies.get("accessToken");
+  const refreshTokenCookie = request.cookies.get("refreshToken");
   const accessToken = accessTokenCookie?.value;
 
   if (!accessToken || accessToken === "") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    if (!refreshTokenCookie || refreshTokenCookie.value === "") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL("/refresh-token?redirectsTo=" + request.nextUrl.pathname, request.url));
   }
 
   try {
-    const jwtSecret = getJwtSecret();
+    const jwtSecret = await getJwtSecret();
     const { payload } = await jwtVerify(accessToken, jwtSecret);
     const { roles } = payload as JWTPayload;
     const { sub } = payload as JWTPayload;
@@ -58,10 +59,7 @@ export async function middleware(request: NextRequest) {
         if (!refreshToken || refreshToken === "") {
           return NextResponse.redirect(new URL("/login", request.url));
         }
-
-        refreshTokenServerAction();
-        // After refreshing token, redirect to the same request URL to retry with new token
-        return NextResponse.redirect(new URL(request.url, request.url));
+        return NextResponse.redirect(new URL("/refresh-token?redirectsTo=" + request.url, request.url));
       }
     }
 
@@ -72,14 +70,11 @@ export async function middleware(request: NextRequest) {
   return;
 }
 
-export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*"],
-};
 
-function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET_KEY;
-  if (!secret) {
-    throw new Error("JWT_SECRET_KEY environment variable is not set");
-  }
-  return new TextEncoder().encode(secret);
-}
+
+export const config = {
+  matcher: [
+    "/workspace", "/workspace/:path*",
+    "/other", "/other/:path*"
+  ],
+};

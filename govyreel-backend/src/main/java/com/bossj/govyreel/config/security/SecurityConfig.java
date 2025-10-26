@@ -1,6 +1,7 @@
 package com.bossj.govyreel.config.security;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,23 +17,35 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.bossj.govyreel.config.security.filters.JwtAuthenticationFilter;
+import com.bossj.govyreel.resolvers.CurrentUserArgumentResolver;
+
 import static org.springframework.boot.autoconfigure.security.servlet.PathRequest.toH2Console;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig {
+public class SecurityConfig implements WebMvcConfigurer {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final Environment environment;
+    private final CurrentUserArgumentResolver currentUserArgumentResolver;
 
     private final String frontendUrl;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, Environment environment,
+            CurrentUserArgumentResolver currentUserArgumentResolver,
             @Value("${app.frontend.url}") String frontendUrl) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.environment = environment;
+        this.currentUserArgumentResolver = currentUserArgumentResolver;
         this.frontendUrl = frontendUrl;
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(currentUserArgumentResolver);
     }
 
     @Bean

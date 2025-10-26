@@ -11,3 +11,6 @@ spring:
     username: sa
     password:
     database-platform: org.hibernate.dialect.H2Dialect
+logging:
+  level:
+    com.bossj.govyreel: DEBUG

@@ -9,9 +9,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.bossj.govyreel.entities.User;
 import com.bossj.govyreel.services.UserService;
+
 
 @Service
 public class SecurityUserDetailsService implements UserDetailsService {
@@ -23,6 +25,7 @@ public class SecurityUserDetailsService implements UserDetailsService {
     }
 
     @Override
+    @Transactional(readOnly=true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userService.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 

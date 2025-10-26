@@ -11,5 +11,6 @@ public interface RefreshTokenService {
     RefreshToken createRefreshToken(Authentication authentication);
     RefreshToken createRefreshTokenByUser(User user);
     RefreshToken findByUserIdAndToken(UUID userId, String token);
+    RefreshToken findByToken(String token);
     void removeTokenByToken(String token);
 }

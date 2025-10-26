@@ -40,31 +40,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
+        log.debug("Processing request URI: {}", request.getRequestURI());
         try {
             String jwt = jwtTokenProvider.getJwtFromRequest(request);
-            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                UUID userId = UUID.fromString(jwtTokenProvider.getUserIdFromToken(jwt));
-                User user = userService.findById(userId);
-                SecurityUser securityUser = (SecurityUser) userDetailsService.loadUserByUsername(user.getEmail());
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        securityUser, null, securityUser.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (StringUtils.hasText(jwt)) {
+                log.debug("JWT token found in request header");
+                if (jwtTokenProvider.validateToken(jwt)) {
+                    log.debug("JWT token is valid");
+                    UUID userId = UUID.fromString(jwtTokenProvider.getUserIdFromToken(jwt));
+                    log.debug("User ID from token: {}", userId);
+
+                    User user = userService.findById(userId);
+                    SecurityUser securityUser = (SecurityUser) userDetailsService.loadUserByUsername(user.getEmail());
+                    log.debug("User details loaded for user ID: {}", userId);
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            securityUser, null, securityUser.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.info("User with ID '{}' authenticated successfully. Setting security context.", userId);
+                } else {
+                    log.warn("Invalid JWT token received for URI: {}", request.getRequestURI());
+                }
+            } else {
+                log.trace("No JWT token found in request header for URI: {}", request.getRequestURI());
             }
         } catch (MalformedJwtException ex) {
-            logger.error("Invalid JWT token");
+            log.error("Invalid JWT token: {}", ex.getMessage());
         } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token");
+            log.error("Expired JWT token: {}", ex.getMessage());
         } catch (UnsupportedJwtException ex) {
-            logger.error("Unsupported JWT token");
+            log.error("Unsupported JWT token: {}", ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            logger.error("JWT claims string is empty.");
+            log.error("JWT claims string is empty: {}", ex.getMessage());
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            log.error("Could not set user authentication in security context", ex);
         }
 
         filterChain.doFilter(request, response);
+        log.trace("Finished processing request: {}", request.getRequestURI());
     }
 
 }

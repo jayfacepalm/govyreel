@@ -1,7 +1,5 @@
 package com.bossj.govyreel.services.impl;
 
-import java.util.UUID;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -53,12 +51,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtResponse refreshToken(HttpServletRequest request) {
         log.info("Refreshing token");
-        String accessToken = tokenProvider.getCookieFromRequest(request, "accessToken");
-        UUID userId = UUID.fromString(tokenProvider.getUserIdFromToken(accessToken));
-
-        log.info("Extracted user ID from access token: {}", userId);
         String refreshTokenVal = tokenProvider.getCookieFromRequest(request, "refreshToken");
-        RefreshToken refreshToken = refreshTokenService.findByUserIdAndToken(userId, refreshTokenVal);
+        RefreshToken refreshToken = refreshTokenService.findByToken(refreshTokenVal);
         User user = refreshToken.getUser();
 
         log.info("Authentication successful");
